@@ -1,15 +1,36 @@
-import java.io.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class HuffmanEncoder {
 
-    private String inputFileName;
-    private String outputFileName;
-    private String codesFileName;
+    // Uncompressed file name for input
+    private String inputFileName = "WarAndPeace.txt";
+
+    // Compressed file name for output
+    private String outputFileName = "WarAndPeace-compressed.bin";
+
+    // File name for the output of the codes
+    private String codesFileName = "WarAndPeace-codes.txt";
+
+    // Book to read data from and write data to
     private BookReader book;
-    private MyOrderedList<FrequencyNode> frequencies = new MyOrderedList<FrequencyNode>();
+
+    // List, that stores the frequency of characters from the input file.
+    private MyOrderedList<FrequencyNode> frequencies = new MyOrderedList<>();
+
+    // Root of the Huffman tree
     private HuffmanNode huffmanTree;
+
+    // Ordered list of the codes
     private MyOrderedList<CodeNode> codes = new MyOrderedList<>();
+
+    // The binary file to write to
     private byte[] encodedText;
+    private boolean wordCodes = true;
+    private MyHashTable<String, Integer> frequenciesHash = new MyHashTable<>(37268);
+
+    private MyHashTable<String, String> codesHash = new MyHashTable<>(37268);
+
     public HuffmanEncoder() throws IOException {
         inputFileName = "WarAndPeace.txt";
         outputFileName = "WarAndPeace-compressed.bin";
@@ -20,163 +41,246 @@ public class HuffmanEncoder {
         encode();
         writeFiles();
     }
+
     private void countFrequency() {
-        long start, finish, difference;
-        start = System.currentTimeMillis();    // Starts timer.
-        System.out.println("Counting frequencies...");
-        for (int i = 0; i < book.book.length(); i++) {
-            FrequencyNode node = new FrequencyNode();
-            node.character = book.book.charAt(i);
-            FrequencyNode existingNode = frequencies.binarySearch(node);
-            if (existingNode == null) {
-                frequencies.add(node);
-            } else {
-                existingNode.frequency++;
+        long duration;
+        long start = System.currentTimeMillis();
+        if (wordCodes) {
+            for (book.wordsAndSeparators.first(); book.wordsAndSeparators.current() != null; book.wordsAndSeparators.next()) {
+                if (frequenciesHash.get(book.wordsAndSeparators.current()) == null) {
+                    frequenciesHash.put(book.wordsAndSeparators.current(), 1);
+                } else {
+                    frequenciesHash.put(book.wordsAndSeparators.current(), frequenciesHash.get(book.wordsAndSeparators.current()) + 1);
+                }
             }
+            long now = System.currentTimeMillis();
+            duration = now - start;
+            System.out.println("Counting frequencies of words and separators... " + frequenciesHash.size() + " unique words" +
+                    " and separators found" + " in " + duration + " milliseconds.");
+        } else {
+            for (int i = 0; i < book.book.length(); i++) {
+                Character character = book.book.charAt(i);
+                FrequencyNode node = frequencies.binarySearch(new FrequencyNode(character, 0));
+                if (node == null) {
+                    frequencies.add(new FrequencyNode(character, 1));
+                } else {
+                    node.count++;
+                }
+            }
+            long now = System.currentTimeMillis();
+            duration = now - start;
+            System.out.println("Counting frequencies of characters... " + frequencies.size() +
+                    " unique character found" + " in " + duration + " milliseconds.");
         }
-        System.out.println(frequencies.size() + " unique characters found.");
-        finish = System.currentTimeMillis(); // Ends timer.
-        difference = finish - start; // Calculates the time to process.
-        System.out.println("Time to process: " + difference + " milliseconds.");
-        System.out.println();
-    }
-    private void buildTree() {
-        long start, finish, difference;
-        start = System.currentTimeMillis();    // Starts timer.
-        System.out.println("Building tree and reading codes...");
-        MyPriorityQueue<HuffmanNode> queue = new MyPriorityQueue<>();
-        for (int i = 0; i < frequencies.size(); i++) {
-            HuffmanNode node = new HuffmanNode(frequencies.get(i).character, frequencies.get(i).frequency);
-            queue.insert(node);
-        }
-        while (queue.size() > 1) {
-            HuffmanNode left = queue.removeMin();
-            HuffmanNode right = queue.removeMin();
-            HuffmanNode parent = new HuffmanNode(left, right);
-            huffmanTree = parent;
-            queue.insert(parent);
-        }
-        extractCodes(huffmanTree, "");
-        finish = System.currentTimeMillis(); // Ends timer.
-        difference = finish - start; // Calculates the time to process.
-        System.out.println("Time to process: " + difference + " milliseconds.");
         System.out.println();
     }
 
-    private void extractCodes(HuffmanNode huffmanTree, String code) {
-        if(huffmanTree.left == null && huffmanTree.right == null) {
-            CodeNode node = new CodeNode();
-            node.character = huffmanTree.character;
-            node.code = code;
-            codes.add(node);
-            return;
+    private void buildTree() {
+        long duration = 0;
+        long start = System.currentTimeMillis();
+        MyPriorityQueue<HuffmanNode> heap = new MyPriorityQueue<>();
+        if (wordCodes) {
+            for (int i = 0; i < frequenciesHash.keys.size(); i++) {
+                String str = frequenciesHash.keys.get(i);
+                HuffmanNode huffman = new HuffmanNode(str, frequenciesHash.get(str));
+                heap.insert(huffman);
+            }
+            duration = getDuration(start, heap);
+        } else {
+            for (int i = 0; i < frequencies.size(); i++) {
+                HuffmanNode huffman = new HuffmanNode(String.valueOf(frequencies.get(i).character), frequencies.get(i).count);
+                heap.insert(huffman);
+            }
         }
-        extractCodes(huffmanTree.left, code + "0");
-        extractCodes(huffmanTree.right, code + "1");
+        System.out.println("Build a Huffman tree and reading codes... in " + duration + " milliseconds.");
+        System.out.println();
+    }
+
+    private long getDuration(long start, MyPriorityQueue<HuffmanNode> heap) {
+        long duration;
+        while (heap.size() > 1) {
+            HuffmanNode n1 = heap.removeMin();
+            HuffmanNode n2 = heap.removeMin();
+            HuffmanNode z = new HuffmanNode(n1, n2);
+            heap.insert(z);
+        }
+        huffmanTree = heap.removeMin();
+        extractCodes(huffmanTree, "");
+        long now = System.currentTimeMillis();
+        duration = now - start;
+        return duration;
+    }
+
+    private void extractCodes(HuffmanNode root, String code) {
+        if (wordCodes) {
+            if (root.isLeaf()) {
+                codesHash.put(root.word, code);
+            } else {
+                extractCodes(root.left, code + "0");
+                extractCodes(root.right, code + "1");
+            }
+        } else {
+            if (root.isLeaf()) {
+                codes.add(new CodeNode(root.character, code));
+            } else {
+                extractCodes(root.left, code + "0");
+                extractCodes(root.right, code + "1");
+            }
+        }
     }
 
     private void encode() {
-        long start, finish, difference;
-        start = System.currentTimeMillis();    // Starts timer.
-        System.out.println("Encoding...");
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < book.book.length(); i++) {
-            for (int j = 0; j < codes.size(); j++) {
-                if (book.book.charAt(i) == codes.get(j).character) {
-                    String code = codes.get(j).code;
-                    sb.append(code);
+        long duration;
+        long start = System.currentTimeMillis();
+        if (wordCodes) {
+            book.wordsAndSeparators.first();
+            while (book.wordsAndSeparators.current() != null) {
+                if (frequenciesHash.get(book.wordsAndSeparators.current()) != null) {
+                    sb.append(codesHash.get(book.wordsAndSeparators.current()));
+                }
+                book.wordsAndSeparators.next();
+            }
+        } else {
+            for (int i = 0; i < book.book.length(); i++) {
+                Character character = book.book.charAt(i);
+                for (int j = 0; j < codes.size(); j++) {
+                    if (codes.get(j).character.compareTo(character) == 0) {
+                        sb.append(codes.get(j).code);
+                        break;
+                    }
                 }
             }
         }
-        int encodedTextLength = sb.length()/8;
-        encodedText = new byte[sb.length()%8 ==0 ? encodedTextLength : encodedTextLength + 1];
-        int j = 0;
-        int index = 0;
-        sb.toString();
-        for (int i = 0; i < sb.length(); i += j) {
-            j = i + 8 < sb.length() ? 8 : sb.length() - i;
-            encodedText[index++] = (byte) Integer.parseInt(sb.substring(i, i + j), 2);
-        }
-        finish = System.currentTimeMillis(); // Ends timer.
-        difference = finish - start; // Calculates the time to process.
-        System.out.println("Time to process: " + difference + " milliseconds.");
-        System.out.println();
-    }
-    private void writeFiles() throws IOException {
-        long start, finish, difference;
-        start = System.currentTimeMillis();    // Starts timer.
-        System.out.println("Writing files...");
-        FileOutputStream output = new FileOutputStream(new File(outputFileName));
-        try (PrintWriter writer = new PrintWriter(new File(codesFileName))) {
-            writer.print("");
-            for (int i = 0; i < codes.size(); i++) {
-                writer.append(codes.get(i).toString() + (i != codes.size() - 1 ? "\n" : ""));
-            }
-            output.write(encodedText);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println(encodedText.length + " bytes written.");
-        finish = System.currentTimeMillis(); // Ends timer.
-        difference = finish - start; // Calculates the time to process.
-        System.out.println("Time to process: " + difference + " milliseconds.");
+        duration = getDuration(sb, start);
+        System.out.println("Encoding message... in " + duration + " milliseconds.");
         System.out.println();
     }
 
+    private long getDuration(StringBuilder sb, long start) {
+        long duration;
+        String str = sb.toString();
+        if (str.length() % 8 != 0) {
+            str = str + "0".repeat(8 - str.length() % 8);
+        }
+        encodedText = new byte[str.length() / 8];
+        for (int i = 0; i < encodedText.length; i++) {
+            String sub = str.substring(i * 8, i * 8 + 8);
+            encodedText[i] = (byte) Integer.parseInt(sub, 2);
+        }
+        long now = System.currentTimeMillis();
+        duration = now - start;
+        return duration;
+    }
+
+    private void writeFiles() {
+        long duration;
+        long start = System.currentTimeMillis();
+        if (wordCodes) {
+            try {
+                FileOutputStream fileOut = new FileOutputStream(outputFileName);
+                fileOut.write(encodedText);
+                fileOut.close();
+            } catch (IOException exception) {
+                exception.printStackTrace();
+            }
+            try {
+                FileOutputStream fileOut = new FileOutputStream(codesFileName);
+                for (int i = 0; i < codesHash.keys.size(); i++) {
+                    String str = codesHash.keys.get(i);
+                    fileOut.write((str + " " + codesHash.get(str) + "\n").getBytes());
+                }
+                fileOut.close();
+            } catch (IOException exception) {
+                exception.printStackTrace();
+            }
+            long now = System.currentTimeMillis();
+            duration = now - start;
+        } else {
+            try {
+                FileOutputStream fileOut = new FileOutputStream(outputFileName);
+                fileOut.write(encodedText);
+                fileOut.close();
+            } catch (IOException exception) {
+                exception.printStackTrace();
+            }
+            try {
+                FileOutputStream fileOut = new FileOutputStream(codesFileName);
+                for (int i = 0; i < codes.size(); i++) {
+                    fileOut.write((codes.get(i).character + " " + codes.get(i).code + "\n").getBytes());
+                }
+                fileOut.close();
+            } catch (IOException exception) {
+                exception.printStackTrace();
+            }
+            long now = System.currentTimeMillis();
+            duration = now - start;
+        }
+        System.out.println("Writing compressed file... " + encodedText.length + " bytes written in "
+                + duration + " milliseconds.");
+    }
     private class HuffmanNode implements Comparable<HuffmanNode> {
-        public char character;
-        public int weight;
+        public Character character;
+        public Integer weight;
         public HuffmanNode left;
         public HuffmanNode right;
+        public String word;
 
-        public HuffmanNode(char character, int weight) {
-            this.character = character;
-            this.weight = weight;
-            left = null;
-            right = null;
+        public HuffmanNode(String word, Integer wt) {
+            this.word = word;
+            this.weight = wt;
         }
 
         public HuffmanNode(HuffmanNode left, HuffmanNode right) {
             this.left = left;
             this.right = right;
-            character = '\0';
             this.weight = left.weight + right.weight;
         }
 
-        public int compareTo(HuffmanNode other) {
-            return this.weight - other.weight;
+        public String toString() {
+            return this.word + ":" + this.weight;
         }
 
-        public String toString() {
-            return character + ": " + weight;
+        @Override
+        public int compareTo(HuffmanNode other) {
+            return Integer.compare(this.weight, other.weight);
+        }
+
+        public boolean isLeaf() {
+            return left == null && right == null;
         }
     }
 
     private class CodeNode implements Comparable<CodeNode> {
-        public char character;
+        public Character character;
         public String code;
 
-        public int compareTo(CodeNode other) {
-            return this.character - other.character;
+        public CodeNode(Character character, String code) {
+            this.character = character;
+            this.code = code;
         }
 
-        public String toString() {
-            return character + ": " + code;
+        @Override
+        public int compareTo(CodeNode other) {
+            return this.character.compareTo(other.character);
         }
     }
-
     private class FrequencyNode implements Comparable<FrequencyNode> {
-        public int frequency = 1;
-        public char character;
+        public Character character;
+        public Integer count;
 
-        @Override
-        public int compareTo(FrequencyNode o) {
-            return character - o.character;
+        public FrequencyNode(Character character, Integer count) {
+            this.character = character;
+            this.count = count;
         }
 
         @Override
+        public int compareTo(FrequencyNode other) {
+            return this.count.compareTo(other.count);
+        }
+
         public String toString() {
-            return character + ": " + frequency;
+            return character + " " + count;
         }
     }
 }

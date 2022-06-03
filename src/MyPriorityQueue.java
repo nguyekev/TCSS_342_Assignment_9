@@ -4,52 +4,64 @@ public class MyPriorityQueue <Type extends Comparable<Type>> {
         heap = new MyArrayList<Type>();
     }
     public void insert(Type item) {
-        int index = heap.size();
-        heap.insert(item, index);
+        heap.insert(item, heap.size());
         bubbleUp();
     }
     public void bubbleUp(){
-        int index = heap.size()-1;
-        while(index>0 && heap.get(parent(index)).compareTo(heap.get(index))>0){
-            swap(parent(index),index);
-            index = parent(index);
+        int index = heap.size() - 1;
+        while (index > 0) {
+            int parent = parent(index);
+            if (heap.get(parent).compareTo(heap.get(index)) > 0) {
+                Type temp = heap.get(parent);
+                heap.set(parent, heap.get(index));
+                heap.set(index, temp);
+                index = parent;
+            } else {
+                break;
+            }
         }
-    }
-    private void swap(int i, int j){
-        Type temp = heap.get(i);
-        heap.set(i,heap.get(j));
-        heap.set(j,temp);
     }
 
     public Type removeMin() {
-        if (heap.size() != 0) {
-            Type min = heap.get(0);
-            heap.set(0, heap.get(heap.size() - 1));
-            heap.remove(heap.size() - 1);
-            sinkDown();
-            return min;
-        }
-        return null;
+        Type item = heap.get(0);
+        if (item == null) return null;
+        heap.set(0, heap.get(size() - 1));
+        heap.remove(size() - 1);
+        sinkDown();
+        return item;
     }
     public void sinkDown(){
+        if (heap.size() == 0) {
+            return;
+        }
         int index = 0;
-        while(left(index)<heap.size()){
-            int smallerChild = left(index);
-            if(right(index)<heap.size() && heap.get(right(index)).compareTo(heap.get(left(index)))<0){
-                smallerChild = right(index);
+        while (index < heap.size()) {
+            int left = left(index);
+            int right = right(index);
+            int smallest = index;
+            if (left < heap.size() && heap.get(left).compareTo(heap.get(index)) < 0) {
+                smallest = left;
             }
-            if(heap.get(index).compareTo(heap.get(smallerChild))>0){
-                swap(index,smallerChild);
-                index = smallerChild;
+            if (right < heap.size() && heap.get(right).compareTo(heap.get(smallest)) < 0) {
+                smallest = right;
             }
-            else{
+            if (smallest != index) {
+                Type temp = heap.get(index);
+                heap.set(index, heap.get(smallest));
+                heap.set(smallest, temp);
+                index = smallest;
+            } else {
                 break;
             }
         }
     }
 
     public boolean isEmpty() {
-        return heap.isEmpty();
+        if (heap.size() == 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
     public int size() {
         return heap.size();
@@ -68,15 +80,6 @@ public class MyPriorityQueue <Type extends Comparable<Type>> {
     }
     @Override
     public String toString() {
-        StringBuilder array = new StringBuilder();
-        array.append("[");
-        for (int i = 0; i < heap.size(); i++) {
-            array.append(heap.get(i));
-            if (i != heap.size() - 1) {
-                array.append(", ");
-            }
-        }
-        array.append("]");
-        return array.toString();
+        return heap.toString();
     }
 }

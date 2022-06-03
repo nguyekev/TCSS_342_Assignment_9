@@ -1,140 +1,142 @@
-public class MyLinkedList<Type extends Comparable <Type>> {
-    private class Node {
-        public Type item;
-        public Node next;
-
-        public Node(Type item) {
-            this.item = item;
-            this.next = next;
-        }
-
-        public Node(Type item, Node next) {
-            this.item = item;
-            this.next = next;
-        }
-
-        public String toString() {
-            return item.toString();
-        }
-    }
-
-    public Node first = null;
-    public Node cur = first;
-    public Node prev;
-    public int size = 0;
-    public int comparisons = 0;
-
-    public Type first() {
-        Type item = null;
-        cur = first;
-        if (cur != null) {
-            item = cur.item;
-        }
-        return item;
-    }
+public class MyLinkedList<Type extends Comparable<Type>> {
+    private Node previous = null;
+    private Node current = null;
+    private Node first = null;
+    private Node sorted;
+    private int size = 0;
+    public long comparisons;
 
     public void addBefore(Type item) {
-        if (cur != null) {
-            Node tempNode = first;
-            Node insertNode = tempNode;
-            while (tempNode.item != cur.item) {
-                insertNode = tempNode;
-                tempNode = tempNode.next;
+        if (current == null && first == null) {
+            addFirst(item);
+        } else if (current == null && first == previous) {
+            addLast(item);
+            first.next = previous;
+        } else if (current == null) {
+            addLast(item);
+        } else {
+            if (current == first) {
+                Node tempNode = new Node(item);
+                tempNode.next = current;
+                previous = tempNode;
+                first = tempNode;
+            } else {
+                Node tempNode = new Node(item);
+                tempNode.next = current;
+                previous.next = tempNode;
+                previous = tempNode;
             }
-            if (tempNode.item == cur.item) {
-                if (cur.item == first.item) {
-                    Node newNode = new Node(item, tempNode);
-                    first = newNode;
-                    cur = first.next;
-                    ++size;
-                    return;
-                }
-                ++size;
-                insertNode.next = new Node(item, cur);
-            }
-        } else{
-            if ( first == null)
-            {
-                Node insertNode = new Node(item, null);
-                first = insertNode;
-                ++size;
-                return;
-            }
-            Node tempNode = first;
-            Node insertNode = new Node(item, null);
-
-            while (tempNode.next != null)
-            {
-                tempNode = tempNode.next;
-            }
-
-            tempNode.next = insertNode;
-            ++size;
+            size++;
         }
     }
 
-    public void addAfter(Type item) {
-        if (cur != null) {
-            Node newNode = new Node(item, cur.next);
-            cur.next = newNode;
-            ++size;
-        }
+    public void addFirst(Type item) {
+        first = new Node(item);
+        previous = first;
+        size++;
     }
 
-    public Type current() {
-        if (cur != null) {
-            return cur.item;
-        }
-        return null;
-    }
-
-    public Type next() {
-        if (cur != null) {
-            prev = cur;
-            cur = cur.next;
-            return cur == null ? null : current();
-        }
-        return null;
+    public void addLast(Type item) {
+        Node tempNode = new Node(item);
+        previous.next = tempNode;
+        previous = tempNode;
     }
 
     public Type remove() {
-        if (cur != null) {
-            Node tempNode = first;
-            prev = tempNode;
-            if (tempNode.item == cur.item) {
-                first = first.next;
-                cur = first;
-                --size;
-                return tempNode.item;
-            }
-            while (tempNode.item != cur.item) {
-                prev = tempNode;
-                tempNode = tempNode.next;
-            }
-            if (tempNode.item == cur.item) {
-                prev.next = tempNode.next;
-                cur = prev;
-                --size;
-                return tempNode.item;
-            }
+        Type result = current();
+        if (current == null) {
+            return null;
         }
-        return null;
+        if (current == first) {
+            current = current.next;
+            previous = current;
+            first = current;
+            size--;
+        } else {
+            current = current.next;
+            previous.next = current;
+            size--;
+        }
+        return result;
+    }
+
+    public Type current() {
+        if (current == null) {
+            return null;
+        } else {
+            return current.item;
+        }
+    }
+
+    public Type first() {
+        if (first == null) {
+            return null;
+        } else {
+            current = first;
+            previous = first;
+            return current.item;
+        }
+    }
+
+    public Type next() {
+        if (current == null) {
+            return null;
+        } else {
+            previous = current;
+            current = current.next;
+            return current();
+        }
     }
 
     public boolean contains(Type item) {
+        Node temp = first;
+        boolean result = false;
         comparisons++;
-        if (size == 0) {
-            return false;
-        }
-        Node tempNode = first;
-        while (tempNode != null) {
-            comparisons++;
-            if (tempNode.item.compareTo(item) == 0) {
-                return true;
+        while (temp != null && !result) {
+            if (temp.item.compareTo(item) == 0) {
+                result = true;
             }
-            tempNode = tempNode.next;
+            temp = temp.next;
+            comparisons++;
         }
-        return false;
+        return result;
+    }
+
+    public void addToLast(Type item) {
+        Node tempNode = new Node(item);
+        if (first == null) {
+            first = tempNode;
+            previous = first;
+        } else {
+            previous.next = tempNode;
+            previous = tempNode;
+        }
+        size++;
+    }
+
+    public void addToFront(Type item) {
+        Node tempNode = new Node(item);
+        tempNode.next = first;
+        first = tempNode;
+        previous = first;
+        size++;
+    }
+
+    public void moveToFront() {
+        if (current != first) {
+            Node tempNode = new Node(current.item);
+            tempNode.next = first;
+            first = tempNode;
+            previous.next = current.next;
+            current.next = first.next;
+        }
+    }
+
+    public void swapWithPrevious() {
+        Node tempNode1 = new Node(current.item);
+        Node tempNode2 = new Node(previous.item);
+        current.item = tempNode2.item;
+        previous.item = tempNode1.item;
     }
 
     public int size() {
@@ -145,16 +147,61 @@ public class MyLinkedList<Type extends Comparable <Type>> {
         return size == 0;
     }
 
+    @Override
     public String toString() {
-        if(isEmpty())
-            return "[]";
-        String s = "[";
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
         Node temp = first;
         while (temp != null) {
-            s = s.concat(temp.toString());
-            s = s.concat(temp.next == null ? "]" : ", ");
+            sb.append(temp.item);
+            if (temp.next != null) {
+                sb.append(", ");
+            }
             temp = temp.next;
         }
-        return s;
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private class Node {
+        public Type item;
+        public Node next;
+
+        public Node(Type item) {
+            this.item = item;
+            this.next = null;
+        }
+
+        @Override
+        public String toString() {
+            return item.toString();
+        }
+    }
+
+    public void sort() {
+        sorted = first;
+        Node temp = first;
+        while (temp != null) {
+            Node temp2 = sorted;
+            while (temp2 != null) {
+                comparisons++;
+                if (temp2.item.compareTo(temp.item) > 0) {
+                    swapWithPrevious();
+                }
+                temp2 = temp2.next;
+            }
+            temp = temp.next;
+        }
+    }
+
+    private void sortHelper(Node newNode) {
+        Node temp = sorted;
+        while (temp != null) {
+            comparisons++;
+            if (temp.item.compareTo(newNode.item) > 0) {
+                swapWithPrevious();
+            }
+            temp = temp.next;
+        }
     }
 }

@@ -2,66 +2,64 @@ public class MyHashTable<Key extends Comparable<Key>, Value> {
     private Integer capacity;
     private Key[] keysBuckets;
     private Value[] valuesBuckets;
-    private Integer size = 0;
+    private Integer size;
     public MyArrayList<Key> keys = new MyArrayList<>();
     public Integer comparisons = 0;
     public Integer maxProbe = 0;
 
-    public MyHashTable() {
-        this.capacity = 32768;
+    public MyHashTable(Integer capacity) {
+        this.capacity = capacity;
         keysBuckets = (Key[]) new Comparable[capacity];
         valuesBuckets = (Value[]) new Object[capacity];
+        size = 0;
     }
     private Integer hash(Key key) {
-        return key.hashCode() % capacity;
+        return Math.abs(key.hashCode()) % capacity;
     }
     public Value get(Key key) {
         int index = hash(key);
-        int probe = 0;
         while (keysBuckets[index] != null) {
-            comparisons++;
-            if (keysBuckets[index].equals(key)) {
+            if (keysBuckets[index].compareTo(key)==0) {
                 return valuesBuckets[index];
             }
             index = (index + 1) % capacity;
-            probe++;
         }
         return null;
     }
 
     public void put(Key key, Value value) {
+        int probes = 1;
         int index = hash(key);
-        int probe = 1;
+        boolean flag = false;
         while (keysBuckets[index] != null) {
-            if (keysBuckets[index].equals(key)) {
-                valuesBuckets[index] = value;
-                return;
+            if (keysBuckets[index].compareTo(key) == 0) {
+                flag = true;
+                break;
             }
+            comparisons++;
             index = (index + 1) % capacity;
-            probe++;
+            probes++;
         }
-        keysBuckets[index] = key;
+        if (!flag) {
+            comparisons++;
+            keysBuckets[index] = key;
+            keys.insert(key, keys.size());
+            size++;
+        }
+        maxProbe = Math.max(maxProbe, probes);
         valuesBuckets[index] = value;
-        size++;
-        keys.insert(key,1);
-        comparisons += probe;
-        if (probe > maxProbe) {
-            maxProbe = probe;
-        }
     }
+
     public Integer size() {
         return size;
     }
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("[");
         for (int i = 0; i < capacity; i++) {
             if (keysBuckets[i] != null) {
-                sb.append(keysBuckets[i] + ": " + valuesBuckets[i] + ", ");
+                sb.append(keysBuckets[i]).append(": ").append(valuesBuckets[i]).append("\n");
             }
         }
-        sb.delete(sb.length() - 2, sb.length());
-        sb.append("]");
         return sb.toString();
     }
 }
