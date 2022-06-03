@@ -3,6 +3,72 @@ import java.io.IOException;
 
 public class HuffmanEncoder {
 
+    private class FrequencyNode implements Comparable<FrequencyNode> {
+        public Character character;
+        public Integer count;
+
+        public FrequencyNode(Character character, Integer count) {
+            this.character = character;
+            this.count = count;
+        }
+
+        @Override
+        public int compareTo(FrequencyNode other) {
+            return this.count.compareTo(other.count);
+        }
+
+        public String toString() {
+            return character + " " + count;
+        }
+    }
+
+    private class HuffmanNode implements Comparable<HuffmanNode> {
+        public Character character;
+        public Integer weight;
+        public HuffmanNode left;
+        public HuffmanNode right;
+        public String word;
+
+        public HuffmanNode(String word, Integer wt) {
+            this.word = word;
+            this.weight = wt;
+        }
+
+        public HuffmanNode(HuffmanNode left, HuffmanNode right) {
+            this.left = left;
+            this.right = right;
+            this.weight = left.weight + right.weight;
+        }
+
+        public String toString() {
+            return this.word + ":" + this.weight;
+        }
+
+        @Override
+        public int compareTo(HuffmanNode other) {
+            return Integer.compare(this.weight, other.weight);
+        }
+
+        public boolean isLeaf() {
+            return left == null && right == null;
+        }
+    }
+
+    private class CodeNode implements Comparable<CodeNode> {
+        public Character character;
+        public String code;
+
+        public CodeNode(Character character, String code) {
+            this.character = character;
+            this.code = code;
+        }
+
+        @Override
+        public int compareTo(CodeNode other) {
+            return this.character.compareTo(other.character);
+        }
+    }
+
     // Uncompressed file name for input
     private String inputFileName = "WarAndPeace.txt";
 
@@ -31,10 +97,7 @@ public class HuffmanEncoder {
 
     private MyHashTable<String, String> codesHash = new MyHashTable<>(37268);
 
-    public HuffmanEncoder() throws IOException {
-        inputFileName = "WarAndPeace.txt";
-        outputFileName = "WarAndPeace-compressed.bin";
-        codesFileName = "WarAndPeace-codes.txt";
+    public HuffmanEncoder() {
         book = new BookReader(inputFileName);
         countFrequency();
         buildTree();
@@ -218,69 +281,5 @@ public class HuffmanEncoder {
         }
         System.out.println("Writing compressed file... " + encodedText.length + " bytes written in "
                 + duration + " milliseconds.");
-    }
-    private class HuffmanNode implements Comparable<HuffmanNode> {
-        public Character character;
-        public Integer weight;
-        public HuffmanNode left;
-        public HuffmanNode right;
-        public String word;
-
-        public HuffmanNode(String word, Integer wt) {
-            this.word = word;
-            this.weight = wt;
-        }
-
-        public HuffmanNode(HuffmanNode left, HuffmanNode right) {
-            this.left = left;
-            this.right = right;
-            this.weight = left.weight + right.weight;
-        }
-
-        public String toString() {
-            return this.word + ":" + this.weight;
-        }
-
-        @Override
-        public int compareTo(HuffmanNode other) {
-            return Integer.compare(this.weight, other.weight);
-        }
-
-        public boolean isLeaf() {
-            return left == null && right == null;
-        }
-    }
-
-    private class CodeNode implements Comparable<CodeNode> {
-        public Character character;
-        public String code;
-
-        public CodeNode(Character character, String code) {
-            this.character = character;
-            this.code = code;
-        }
-
-        @Override
-        public int compareTo(CodeNode other) {
-            return this.character.compareTo(other.character);
-        }
-    }
-    private class FrequencyNode implements Comparable<FrequencyNode> {
-        public Character character;
-        public Integer count;
-
-        public FrequencyNode(Character character, Integer count) {
-            this.character = character;
-            this.count = count;
-        }
-
-        @Override
-        public int compareTo(FrequencyNode other) {
-            return this.count.compareTo(other.count);
-        }
-
-        public String toString() {
-            return character + " " + count;
-        }
     }
 }
